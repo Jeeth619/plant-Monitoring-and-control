@@ -1,0 +1,61 @@
+#define BLYNK_PRINT Serial
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
+
+char auth[] = "YOUR_BLYNK_AUTH_TOKEN";
+char ssid[] = "YOUR_WIFI_SSID";
+char pass[] = "YOUR_WIFI_PASSWORD";
+
+#define DHTPIN 12  // DHT sensor connected to GPIO pin D6
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+
+const int soilMoisturePin = A0; 
+const int waterPumpPin = D8;     
+
+BlynkTimer timer;
+
+void setup() {
+  pinMode(waterPumpPin, OUTPUT);
+
+  Serial.begin(9600);
+  Blynk.begin(auth, ssid, pass);
+  
+  dht.begin();
+  
+  timer.setInterval(10000L, sendSensorData);  
+}
+
+void loop() {
+  Blynk.run();
+  timer.run();
+}
+
+void sendSensorData() {
+  float humidity = dht.readHumidity();
+  float temperature = dht.readTemperature();
+  int moistureLevel = analogRead(soilMoisturePin);
+
+  Blynk.virtualWrite(V5, temperature);   
+  Blynk.virtualWrite(V6, humidity);       
+  Blynk.virtualWrite(V7, moistureLevel);  
+  if (Blynk.read(waterPumpPin) == HIGH)
+ {
+    digitalWrite(waterPumpPin, LOW);   
+  } else
+ {
+    digitalWrite(waterPumpPin, HIGH);  
+  }
+
+  
+}
+
+BLYNK_WRITE(V8)
+ {
+  int pumpState = param.asInt();
+  digitalWrite(waterPumpPin, pumpState); 
+
+
+
